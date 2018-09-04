@@ -1,0 +1,28 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "jasmine": true,
+    "node": true
+  },
+  "extends": "airbnb-base",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "impliedStrict": true
+    },
+    "sourceType": "module"
+  },
+  "rules": {
+    "arrow-parens": ["error", "always"],
+    "import/no-extraneous-dependencies": ["error", {
+        "devDependecies": [
+          "./test/**/*.js",
+          "karma.conf.js"
+        ]
+      }
+    ],
+    "no-multiple-empty-lines": ["error", { "max": 3 }],
+    "sort-keys": ["error", "asc", { "natural": true }],
+    "sort-vars": ["error", { "ignoreCase": true }]
+  }
+}
