@@ -1,13 +1,14 @@
 /* eslint-disable no-console */
-import express from 'express';
-import path from 'path';
 import bodyParser from 'body-parser';
 import compression from 'compression';
-import mongoose from 'mongoose';
-import session from 'express-session';
-import SourceMapSupport from 'source-map-support';
+import express from 'express';
 import http from 'http';
+import mongoose from 'mongoose';
+import passport from 'passport';
+import path from 'path';
+import session from 'express-session';
 import socket from 'socket.io';
+import SourceMapSupport from 'source-map-support';
 import {
   createData,
   deleteData,
@@ -15,8 +16,9 @@ import {
   updateData,
 } from './controllers/crud';
 
-const MongoStore = require('connect-mongo')(session);
 require('./config/passport');
+
+const MongoStore = require('connect-mongo')(session);
 
 const app = express();
 const server = http.Server(app);
@@ -35,6 +37,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(compression());
+app.use(passport.initialize());
 app.use(require('./routes'));
 
 
@@ -108,6 +111,7 @@ app.use(sessionMware);
 io.use((ioSocket, next) => {
   sessionMware(ioSocket.request, ioSocket.request.res, next);
 });
+app.use(passport.session());
 
 
 // add Source Map Support

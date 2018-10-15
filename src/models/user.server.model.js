@@ -4,8 +4,16 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
 const UsersSchema = mongoose.Schema({
-  email: String,
+  email: {
+    required: true,
+    type: String,
+    unique: true,
+  },
   hash: String,
+  name: {
+    required: true,
+    type: String,
+  },
   salt: String,
 }, {
   collection: 'users',
@@ -30,6 +38,7 @@ UsersSchema.methods.generateJWT = function generateJWT() {
     email: this.email,
     exp: parseInt(expirationDate.getTime() / 1000, 10),
     id: this._id,
+    name: this.name,
   }, 'secret');
 };
 
@@ -37,6 +46,7 @@ UsersSchema.methods.toAuthJSON = function toAuthJSON() {
   return {
     _id: this._id,
     email: this.email,
+    name: this.name,
     token: this.generateJWT(),
   };
 };

@@ -1,74 +1,13 @@
+import passport from 'passport';
 import Users from '../../models/user.server.model';
+import {
+  login,
+  register,
+} from '../../controllers/auth';
 
-const passport = require('passport');
 const router = require('express').Router();
 const auth = require('../auth');
 
-// POST new user route (optional, everyone has access)
-router.post('/', auth.optional, (req, res) => {
-  const { body: { user } } = req;
-
-  if (!user.email) {
-    return res.status(422).json({
-      errors: {
-        email: 'is required',
-      },
-    });
-  }
-
-  if (!user.password) {
-    return res.status(422).json({
-      errors: {
-        password: 'is required',
-      },
-    });
-  }
-
-  const finalUser = new Users(user);
-
-  finalUser.setPassword(user.password);
-
-  return finalUser.save()
-    .then(() => res.json({ user: finalUser.toAuthJSON() }));
-});
-
-// POST login route (optional, everyone has access)
-router.post('/login', auth.optional, (req, res, next) => {
-  const { body: { user } } = req;
-
-  if (!user.email) {
-    return res.status(422).json({
-      errors: {
-        email: 'is required',
-      },
-    });
-  }
-
-  if (!user.password) {
-    return res.status(422).json({
-      errors: {
-        password: 'is required',
-      },
-    });
-  }
-
-  return passport.authenticate('local', { session: false }, (err, passportUser) => {
-    if (err) {
-      return next(err);
-    }
-
-    if (passportUser) {
-      const pUser = passportUser;
-      pUser.token = passportUser.generateJWT();
-
-      return res.json({ user: pUser.toAuthJSON() });
-    }
-
-    return res.status(400).info;
-  })(req, res, next);
-});
-
-// GET current route (required, only authenticated users have access)
 router.get('/current', auth.required, (req, res) => {
   const { payload: { id } } = req;
 
@@ -81,5 +20,19 @@ router.get('/current', auth.required, (req, res) => {
       return res.json({ user: user.toAuthJSON() });
     });
 });
+router.post('/login', auth.optional, (req, res) => login(req, res));
+router.post('/register', auth.optional, (req, res) => register(req, res));
+
+router.get('/steam', passport.authenticate('steam', { failureRedirect: '/' }), (req, res) => { res.redirect('/'); });
+router.get('/steam/return', (req, res, next) => {
+  req.url = req.originalUrl;
+  next();
+},
+passport.authenticate('steam', { failureRedirect: '/' }),
+(req, res) => {
+  res.redirect('/');
+});
+
+
 
 module.exports = router;
