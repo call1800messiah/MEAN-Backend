@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
+const config = require('../../config');
+
 const UsersSchema = mongoose.Schema({
   email: {
     required: true,
@@ -39,7 +41,7 @@ UsersSchema.methods.generateJWT = function generateJWT() {
     exp: parseInt(expirationDate.getTime() / 1000, 10),
     id: this._id,
     name: this.name,
-  }, 'secret');
+  }, config.session.secret);
 };
 
 UsersSchema.methods.toAuthJSON = function toAuthJSON() {

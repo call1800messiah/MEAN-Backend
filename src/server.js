@@ -19,12 +19,12 @@ import {
 require('./config/passport');
 
 const MongoStore = require('connect-mongo')(session);
+const config = require('../config');
 
 const app = express();
 const server = http.Server(app);
 const io = socket(server);
-const port = process.env.PORT || 3001;
-const sessionSecret = 'bob';
+const appPort = config.app.port;
 let sessionStore;
 
 // configure app
@@ -88,7 +88,7 @@ io.on('connection', (activeSocket) => {
 
 // connect to database
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/mean-backend', {
+mongoose.connect(config.db.host, {
   useNewUrlParser: true,
 });
 
@@ -101,10 +101,10 @@ sessionStore = new MongoStore({
 });
 const sessionMware = session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 },
-  name: 'MEAN-Backend.sess',
+  name: config.session.cookieName,
   resave: false,
   saveUninitialized: true,
-  secret: sessionSecret,
+  secret: config.session.secret,
   store: sessionStore,
 });
 app.use(sessionMware);
@@ -125,6 +125,6 @@ app.use((req, res) => {
 
 
 // start the server
-server.listen(port, () => {
-  console.log(`App Server Listening at ${port}`);
+server.listen(appPort, () => {
+  console.log(`App Server Listening at ${appPort}`);
 });

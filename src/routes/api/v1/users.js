@@ -1,12 +1,12 @@
 import passport from 'passport';
-import Users from '../../models/user.server.model';
+import Users from '../../../models/user.server.model';
 import {
   login,
   register,
-} from '../../controllers/auth';
+} from '../../../controllers/auth';
 
 const router = require('express').Router();
-const auth = require('../auth');
+const auth = require('../../auth');
 
 router.get('/current', auth.required, (req, res) => {
   const { payload: { id } } = req;
