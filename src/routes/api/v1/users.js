@@ -1,7 +1,7 @@
-import passport from 'passport';
 import Users from '../../../models/user.server.model';
 import {
   login,
+  loginWithSteam,
   register,
 } from '../../../controllers/auth';
 
@@ -23,15 +23,15 @@ router.get('/current', auth.required, (req, res) => {
 router.post('/login', auth.optional, (req, res) => login(req, res));
 router.post('/register', auth.optional, (req, res) => register(req, res));
 
-router.get('/steam', passport.authenticate('steam', { failureRedirect: '/' }), (req, res) => { res.redirect('/'); });
-router.get('/steam/return', (req, res, next) => {
-  req.url = req.originalUrl;
-  next();
-},
-passport.authenticate('steam', { failureRedirect: '/' }),
-(req, res) => {
-  res.redirect('/');
-});
+router.get('/steam', (req, res) => loginWithSteam(req, res));
+router.get(
+  '/steam/return',
+  (req, res, next) => {
+    req.url = req.originalUrl;
+    next();
+  },
+  (req, res) => loginWithSteam(req, res),
+);
 
 
 

@@ -7,7 +7,6 @@ const config = require('../../config');
 
 const UsersSchema = mongoose.Schema({
   email: {
-    required: true,
     type: String,
     unique: true,
   },
@@ -17,6 +16,10 @@ const UsersSchema = mongoose.Schema({
     type: String,
   },
   salt: String,
+  steamId: {
+    type: Number,
+    unique: true,
+  },
 }, {
   collection: 'users',
 });

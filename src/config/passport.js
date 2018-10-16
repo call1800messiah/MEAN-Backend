@@ -1,9 +1,18 @@
 import Users from '../models/user.server.model';
+import { createUserFromSteam } from '../controllers/auth';
 
 const passport = require('passport');
 const SteamStrategy = require('passport-steam');
 const LocalStrategy = require('passport-local');
 const config = require('../../config');
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
 
 passport.use(new LocalStrategy({
   passwordField: 'password',
@@ -21,16 +30,14 @@ passport.use(new LocalStrategy({
 
 if (config.steamApiKey !== null) {
   passport.use(new SteamStrategy({
-    apiKey: config.steamApiKey,
+    apiKey: config.steam.apiKey,
     realm: `${config.app.host}:${config.app.port}`,
-    returnURL: `${config.app.host}:${config.app.port}${config.api.path}${config.api.version}/steam/return`,
+    returnURL: `${config.app.host}:${config.app.port}${config.api.path}${config.api.version}/users/steam/return`,
   },
   (identifier, profile, done) => {
-    // To keep the example simple, the user's Steam profile is returned to
-    // represent the logged-in user.  In a typical application, you would want
-    // to associate the Steam account with a user record in your database,
-    // and return that user instead.
-    console.log(identifier, profile);
-    return done(null, profile);
+    createUserFromSteam(profile).then((user) => {
+      console.log(user);
+      return done(null, user);
+    }).catch(done);
   }));
 }

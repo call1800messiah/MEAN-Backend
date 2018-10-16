@@ -19,6 +19,7 @@ import {
 require('./config/passport');
 
 const MongoStore = require('connect-mongo')(session);
+const cors = require('cors');
 const config = require('../config');
 
 const app = express();
@@ -31,13 +32,14 @@ let sessionStore;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-});
+// app.use((req, res, next) => {
+//   res.header('Access-Control-Allow-Origin', '*');
+//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+//   next();
+// });
 app.use(compression());
 app.use(passport.initialize());
+app.use(cors());
 app.use(require('./routes'));
 
 
