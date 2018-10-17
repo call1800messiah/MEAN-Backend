@@ -52,7 +52,6 @@ export const loginWithSteam = function loginWithSteam(req, res) {
 
 
 export const register = function register(req, res) {
-  console.log('Registering user');
   const user = new User();
 
   if (!req.body.email) {
@@ -87,7 +86,6 @@ export const register = function register(req, res) {
 
 
 export const createUserFromSteam = function createUserFromSteam(profile) {
-  console.log('Creating user from steam:', profile);
   const promise = User.findOne({ steamId: profile.id }).exec();
   return promise.then((user) => {
     if (user === null) {
@@ -100,8 +98,7 @@ export const createUserFromSteam = function createUserFromSteam(profile) {
     }
 
     return user;
-  })
-    .catch((err) => {
-      console.log(err);
-    });
+  }).catch((err) => {
+    console.log(err);
+  });
 };

@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import Users from '../models/user.server.model';
 import { createUserFromSteam } from '../controllers/auth';
 
@@ -7,11 +8,13 @@ const LocalStrategy = require('passport-local');
 const config = require('../../config');
 
 passport.serializeUser((user, done) => {
-  done(null, user);
+  done(null, user._id);
 });
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
+passport.deserializeUser((id, done) => {
+  Users.findById(id, (err, user) => {
+    done(err, user);
+  });
 });
 
 passport.use(new LocalStrategy({
@@ -35,9 +38,6 @@ if (config.steamApiKey !== null) {
     returnURL: `${config.app.host}:${config.app.port}${config.api.path}${config.api.version}/users/steam/return`,
   },
   (identifier, profile, done) => {
-    createUserFromSteam(profile).then((user) => {
-      console.log(user);
-      return done(null, user);
-    }).catch(done);
+    createUserFromSteam(profile).then((user) => done(null, user)).catch(done);
   }));
 }

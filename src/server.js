@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import compression from 'compression';
 import express from 'express';
 import http from 'http';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import passport from 'passport';
 import path from 'path';
@@ -22,40 +23,83 @@ const MongoStore = require('connect-mongo')(session);
 const cors = require('cors');
 const config = require('../config');
 
+
+
 const app = express();
+const appPort = config.app.port;
 const server = http.Server(app);
 const io = socket(server);
-const appPort = config.app.port;
-let sessionStore;
+const userSockets = {};
+
 
 // configure app
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-// app.use((req, res, next) => {
-//   res.header('Access-Control-Allow-Origin', '*');
-//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-//   next();
-// });
 app.use(compression());
 app.use(cors());
+
+
+// connect to database
+mongoose.Promise = global.Promise;
+mongoose.connect(config.db.host, {
+  useNewUrlParser: true,
+});
+
+
+// Session storage
+const sessionMware = session({
+  cookie: { maxAge: 1000 * 60 * 60 * 24 },
+  name: config.session.cookieName,
+  resave: false,
+  saveUninitialized: true,
+  secret: config.session.secret,
+  store: new MongoStore({
+    mongooseConnection: mongoose.connection,
+    touchAfter: 24 * 3600,
+  }),
+});
+app.use(sessionMware);
+
+
+// Initialize passport
 app.use(passport.initialize());
+app.use(passport.session());
+
+
+// Setup routes
 app.use(require('./routes'));
 
 
 // Socket IO Setup
-const userSockets = {};
+io.use((ioSocket, next) => {
+  sessionMware(ioSocket.request, {}, next);
+});
+io.use((activeSocket, next) => {
+  jwt.verify(activeSocket.handshake.query.token, config.session.secret, (err) => {
+    if (err) {
+      return next(new Error('authentication error'));
+    }
+
+    return next();
+  });
+});
 io.on('connection', (activeSocket) => {
-  let ID = false;
-  console.log(`Connected to Socket!! ${activeSocket.id}`);
-  console.log(`Socket session object: ${JSON.stringify(activeSocket.request.session)}`);
+  const decoded = jwt.decode(activeSocket.handshake.query.token);
+  const ID = decoded.id;
+  userSockets[ID] = activeSocket;
+  console.log(`User ${ID} connected to socket: ${activeSocket.id}`);
+  // console.log(`Socket session object: ${JSON.stringify(activeSocket.request.session)}`);
+  //
+  // if (activeSocket.request.session.passport) {
+  //   console.log(`Passport user: ${activeSocket.request.session.passport.user}`);
+  //
+  //   ID = activeSocket.request.session.passport.user;
+  //   userSockets[ID] = activeSocket;
+  // }
+  // console.log(userSockets);
 
-  if (activeSocket.request.session.passport) {
-    console.log(`Passport user: ${activeSocket.request.session.passport.user}`);
 
-    ID = activeSocket.request.session.passport.user;
-    userSockets[ID] = activeSocket;
-  }
 
   activeSocket.on('create', (data) => {
     console.log(`socketData: ${JSON.stringify(data)}`);
@@ -86,34 +130,6 @@ io.on('connection', (activeSocket) => {
     return console.log('Unknown user disconnected');
   });
 });
-
-
-// connect to database
-mongoose.Promise = global.Promise;
-mongoose.connect(config.db.host, {
-  useNewUrlParser: true,
-});
-
-
-// Session storage
-// eslint-disable-next-line prefer-const
-sessionStore = new MongoStore({
-  mongooseConnection: mongoose.connection,
-  touchAfter: 24 * 3600,
-});
-const sessionMware = session({
-  cookie: { maxAge: 1000 * 60 * 60 * 24 },
-  name: config.session.cookieName,
-  resave: false,
-  saveUninitialized: true,
-  secret: config.session.secret,
-  store: sessionStore,
-});
-app.use(sessionMware);
-io.use((ioSocket, next) => {
-  sessionMware(ioSocket.request, ioSocket.request.res, next);
-});
-app.use(passport.session());
 
 
 // add Source Map Support
