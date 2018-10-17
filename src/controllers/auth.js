@@ -30,7 +30,7 @@ export const login = function login(req, res) {
 
 export const loginWithSteam = function loginWithSteam(req, res) {
   return passport.authenticate('steam', (err, user, info) => {
-    let token;
+    let param = '';
 
     // If Passport throws/catches an error
     if (err) {
@@ -40,16 +40,13 @@ export const loginWithSteam = function loginWithSteam(req, res) {
 
     // If a user is found
     if (user) {
-      token = user.generateJWT();
-      res.status(200);
-      res.json({
-        token,
-      });
+      param = `?token=${user.generateJWT()}`;
     } else {
-      // If user is not found
-      res.status(401).json(info);
+      console.log(info);
+      // param = `?info=${info}`;
     }
-    res.redirect('http://localhost:4200/');
+
+    res.redirect(`http://localhost:4200/auth${param}`);
   })(req, res);
 };
 
@@ -91,13 +88,20 @@ export const register = function register(req, res) {
 
 export const createUserFromSteam = function createUserFromSteam(profile) {
   console.log('Creating user from steam:', profile);
-  return User.findOne({ steamId: profile.id })
-    .then((user) => user)
-    .catch(() => {
-      const user = new User();
-      user.steamId = profile.id;
-      user.name = profile.displayName;
+  const promise = User.findOne({ steamId: profile.id }).exec();
+  return promise.then((user) => {
+    if (user === null) {
+      const newUser = new User();
+      newUser.steamId = profile.id;
+      newUser.name = profile.displayName;
+      newUser.save();
 
-      return user;
+      return newUser;
+    }
+
+    return user;
+  })
+    .catch((err) => {
+      console.log(err);
     });
 };

@@ -38,8 +38,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 //   next();
 // });
 app.use(compression());
-app.use(passport.initialize());
 app.use(cors());
+app.use(passport.initialize());
 app.use(require('./routes'));
 
 
