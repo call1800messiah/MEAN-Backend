@@ -7,7 +7,6 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import passport from 'passport';
 import path from 'path';
-import session from 'express-session';
 import socket from 'socket.io';
 import SourceMapSupport from 'source-map-support';
 import {
@@ -19,7 +18,6 @@ import {
 
 require('./config/passport');
 
-const MongoStore = require('connect-mongo')(session);
 const cors = require('cors');
 const config = require('../config');
 
@@ -47,34 +45,14 @@ mongoose.connect(config.db.host, {
 });
 
 
-// Session storage
-const sessionMware = session({
-  cookie: { maxAge: 1000 * 60 * 60 * 24 },
-  name: config.session.cookieName,
-  resave: false,
-  saveUninitialized: true,
-  secret: config.session.secret,
-  store: new MongoStore({
-    mongooseConnection: mongoose.connection,
-    touchAfter: 24 * 3600,
-  }),
-});
-app.use(sessionMware);
-
-
 // Initialize passport
 app.use(passport.initialize());
-app.use(passport.session());
 
 
 // Setup routes
 app.use(require('./routes'));
 
 
-// Socket IO Setup
-io.use((ioSocket, next) => {
-  sessionMware(ioSocket.request, {}, next);
-});
 io.use((activeSocket, next) => {
   jwt.verify(activeSocket.handshake.query.token, config.session.secret, (err) => {
     if (err) {
@@ -89,16 +67,6 @@ io.on('connection', (activeSocket) => {
   const ID = decoded.id;
   userSockets[ID] = activeSocket;
   console.log(`User ${ID} connected to socket: ${activeSocket.id}`);
-  // console.log(`Socket session object: ${JSON.stringify(activeSocket.request.session)}`);
-  //
-  // if (activeSocket.request.session.passport) {
-  //   console.log(`Passport user: ${activeSocket.request.session.passport.user}`);
-  //
-  //   ID = activeSocket.request.session.passport.user;
-  //   userSockets[ID] = activeSocket;
-  // }
-  // console.log(userSockets);
-
 
 
   activeSocket.on('create', (data) => {
