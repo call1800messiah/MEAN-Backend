@@ -52,46 +52,58 @@ app.use(passport.initialize());
 // Setup routes
 app.use(require('./routes'));
 
-
-io.use((activeSocket, next) => {
+// Verify the entire connection
+// io.use((activeSocket, next) => {
+//   jwt.verify(activeSocket.handshake.query.token, config.session.secret, (err) => {
+//     if (err) {
+//       return next(new Error('authentication error'));
+//     }
+//
+//     return next();
+//   });
+// });
+io.on('connection', (activeSocket) => {
+  let ID;
+  userSockets[activeSocket.id] = {
+    socket: activeSocket,
+    userID: '',
+  };
   jwt.verify(activeSocket.handshake.query.token, config.session.secret, (err) => {
     if (err) {
-      return next(new Error('authentication error'));
+      console.log(`Unknown user connected to socket: ${activeSocket.id}`);
+    } else {
+      const decoded = jwt.decode(activeSocket.handshake.query.token);
+      ID = decoded.id;
+      userSockets[activeSocket.id].userID = ID;
+      console.log(`User ${ID} connected to socket: ${activeSocket.id}`);
+
+      activeSocket.on('create', (data) => {
+        console.log(`socketData: ${JSON.stringify(data)}`);
+        createData(data, userSockets);
+      });
+
+      activeSocket.on('update', (data) => {
+        console.log(`socketData: ${JSON.stringify(data)}`);
+        updateData(data, userSockets);
+      });
+
+      activeSocket.on('delete', (data) => {
+        console.log(`socketData: ${JSON.stringify(data)}`);
+        deleteData(data, io);
+      });
     }
-
-    return next();
   });
-});
-io.on('connection', (activeSocket) => {
-  const decoded = jwt.decode(activeSocket.handshake.query.token);
-  const ID = decoded.id;
-  userSockets[ID] = activeSocket;
-  console.log(`User ${ID} connected to socket: ${activeSocket.id}`);
 
-
-  activeSocket.on('create', (data) => {
-    console.log(`socketData: ${JSON.stringify(data)}`);
-    createData(data, io);
-  });
 
   activeSocket.on('retrieve', (data) => {
     console.log(`socketData: ${JSON.stringify(data)}`);
-    retrieveData(data, io);
+    retrieveData(data, activeSocket, ID);
   });
 
-  activeSocket.on('update', (data) => {
-    console.log(`socketData: ${JSON.stringify(data)}`);
-    updateData(data, io);
-  });
-
-  activeSocket.on('delete', (data) => {
-    console.log(`socketData: ${JSON.stringify(data)}`);
-    deleteData(data, io);
-  });
 
   activeSocket.on('disconnect', () => {
+    delete userSockets[activeSocket.id];
     if (ID) {
-      delete userSockets[ID];
       return console.log(`User ${ID} has disconnected`);
     }
 

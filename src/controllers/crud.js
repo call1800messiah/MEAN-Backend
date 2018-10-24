@@ -3,27 +3,35 @@ import Data from '../models/data.server.model';
 
 
 
-export const retrieveData = (data, io) => {
+export const retrieveData = (data, socket, userID) => {
   if (data === null) {
     console.log('Sending all data');
-    Data.find({}, (err, dataList) => {
-      io.emit('retrieveAllData', dataList);
+    const options = {};
+    if (!userID) {
+      options.public = true;
+    }
+    Data.find(options, (err, dataList) => {
+      socket.emit('retrieveAllData', dataList);
     });
   }
 };
 
-export const createData = (data, io) => {
-  const newData = new Data({ content: data, label: 'Name' });
+export const createData = (data, sockets) => {
+  const newData = new Data({ content: data, label: 'Name', public: true });
   newData.save((err, result) => {
     if (err) {
       console.log(`Error creating data: ${err}`);
     } else {
-      io.emit('dataCreated', result);
+      Object.values(sockets).forEach((socket) => {
+        if (socket.userID !== '' || result.public) {
+          socket.socket.emit('dataCreated', result);
+        }
+      });
     }
   });
 };
 
-export const updateData = (data, io) => {
+export const updateData = (data, sockets) => {
   Data.findOneAndUpdate(
     { _id: data._id },
     { content: data.content },
@@ -32,7 +40,11 @@ export const updateData = (data, io) => {
       if (err) {
         console.log(`Error updating data: ${err}`);
       } else {
-        io.emit('dataUpdated', updated);
+        Object.values(sockets).forEach((socket) => {
+          if (socket.userID !== '' || updated.public) {
+            socket.socket.emit('dataUpdated', updated);
+          }
+        });
       }
     },
   );

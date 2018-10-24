@@ -10,6 +10,10 @@ const Schema = mongoose.Schema({
     default: '',
     type: String,
   },
+  public: {
+    default: false,
+    type: Boolean,
+  },
 }, {
   collection: 'info',
 });
